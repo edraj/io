@@ -22,6 +22,7 @@ type Config struct {
 	servingAddress string
 	mongoAddress   string
 	dataPath       string
+	mediaPath      string
 	shutdownWait   time.Duration
 }
 
@@ -31,7 +32,8 @@ var (
 		assetsPath:     "./assets/",
 		certsPath:      "../../workspace/certs/",
 		templatesPath:  "./templates/",
-		dataPath:       "./data", // Mongo, files, indexes ...
+		dataPath:       "../../workspace/", // Mongo, files, indexes ...
+		mediaPath:      "../../workspace/media/",
 		servingAddress: "127.0.0.1:5533",
 		shutdownWait:   15 * time.Second,
 		mongoAddress:   "127.0.0.1:27017",

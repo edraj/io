@@ -15,22 +15,25 @@
     <div class="container" id="app">
         <h3 class="text-center">مقولة </h3>
         <h4 class="text-center">
-المجموع {{ total }} | عرض من {{filter.offset}} إلى {{filter.offset+filter.limit}} | 
-<button v-on:click="previous">السابق</button>|<button v-on:click="next">التالي</button> 
-</h4>
+            المجموع {{ total }} | عرض من {{filter.offset}} إلى {{filter.offset+filter.limit}} |
+            <button v-on:click="previous">السابق</button>|<button v-on:click="next">التالي</button>
+        </h4>
         <div class="columns large-4" v-for="result in results">
             <div class="card">
                 <div class="card-divider">
                     {{ result.content.displayname }} | {{ result.content.author.displayname }}
                 </div>
-                <div v-for="attachment in result.content.attachments">
-                    <div v-if="attachment.type == 3">
-                        <img :src="'maqola/' + attachment.file_path">
+
+                <div v-for="fid in result.content.files">
+                    <span v-if="attachments.hasOwnProperty(fid)">
+                    <div v-if="attachments[fid].type == 3">
+                        <img :src="'/media/' + attachments[fid].pathname">
                     </div>
-                    <div v-if="attachment.type == 6">
-                        <audio controls="controls" :src="'maqola/' + attachment.file_path" preload="auto" />
+                    <div v-if="attachments[fid].type == 6">
+                        <audio controls="controls" :src="'/media/' + attachments[fid].pathname" preload="auto" />
                     </div>
                     <hr/>
+                    </span>
                 </div>
 
                 <div class="card-section">

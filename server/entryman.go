@@ -126,6 +126,7 @@ func (man *EntryMan) query(filter *Filter) (response *Response, err error) {
 		query["tags"] = bson.M{"$all": filter.Tags} // $all for and, $in for or
 	}
 
+	grpclog.Info("Filter: ", filter)
 	grpclog.Info("Query: ", query)
 
 	fieldName := strings.Title(entryType)
@@ -137,6 +138,11 @@ func (man *EntryMan) query(filter *Filter) (response *Response, err error) {
 		filter.Limit = 2
 	}
 	err = man.mongoDb.C(entryType).Find(query).Skip(int(filter.Offset)).Limit(int(filter.Limit)).All(objects.Interface())
+	if err != nil {
+		response.Status.Code = int32(codes.Internal)
+		err = status.Errorf(codes.Internal, err.Error())
+		return
+	}
 
 	for i := 0; i < objects.Elem().Len(); i++ {
 		entry := &Entry{}
@@ -144,17 +150,12 @@ func (man *EntryMan) query(filter *Filter) (response *Response, err error) {
 		response.Entries = append(response.Entries, entry)
 	}
 
-	if err != nil {
-		response.Status.Code = int32(codes.Internal)
-		err = status.Errorf(codes.Internal, err.Error())
-		return
-	}
-
 	//response.Returned = int64(len(response.Entries))
 	total, _ := man.mongoDb.C(entryType).Find(query).Count()
 	response.Total = int64(total)
 
 	response.Status.Code = int32(codes.OK)
+	grpclog.Info("Response code: ", response.Status, "count: ", response.Total)
 	return
 }
 
