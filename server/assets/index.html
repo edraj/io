@@ -21,32 +21,31 @@
         <div class="columns large-4" v-for="result in results">
             <div class="card">
                 <div class="card-divider">
-                    {{ result.content.displayname }} | {{ result.content.author.displayname }}
+                    {{ result.content.displayname }} | {{ actors[result.content.author_id] }}
                 </div>
 
-                <div v-for="fid in result.content.files">
+                <div v-for="fid in result.content.file_ids">
                     <span v-if="attachments.hasOwnProperty(fid)">
-                    <div v-if="attachments[fid].type == 3">
-                        <img :src="'/media/' + attachments[fid].pathname">
+                    <div v-if="attachments[fid].data.type == 3">
+                        <img :src="'/media/' + attachments[fid].data.pathname">
                     </div>
-                    <div v-if="attachments[fid].type == 6">
-                        <audio controls="controls" :src="'/media/' + attachments[fid].pathname" preload="auto" />
+                    <div v-if="attachments[fid].data.type == 6">
+                        <audio controls="controls" :src="'/media/' + attachments[fid].data.pathname" preload="auto" />
                     </div>
                     <hr/>
                     </span>
                 </div>
 
                 <div class="card-section">
-                    <p v-html="result.content.body"></p>
+                    <p v-html="result.content.data.text"></p>
                 </div>
 
 
                 <div class="card-divider">
-                    {{ result.content.tags }} <br/> {{ result.content.actor.displayname}}
+                    {{ result.content.tags }} <br/> {{ actors[result.content.actor_id]}}
                 </div>
                 <div v-for="comment in result.content.comments">
-                    تعليق: "{{comment.title}}/{{comment.body}}"
-                    <!-- {{comment.actor.displayname}} -->
+                    تعليق: "{{comment.title}}/{{comment.body}}" {{comment.actor_id}}
                 </div>
 
             </div>

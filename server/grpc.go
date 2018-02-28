@@ -3,9 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"path"
 	"strings"
@@ -60,10 +58,10 @@ func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 			if len(info.State.VerifiedChains) > 0 && len(info.State.VerifiedChains[0]) > 0 {
 				username = info.State.VerifiedChains[0][0].Subject.CommonName
 			}
-			grpclog.Info("peer certs: ", info.State.PeerCertificates)
-			if len(info.State.PeerCertificates) > 0 {
-				grpclog.Info("peer cert cn: ", info.State.PeerCertificates[0].Subject.CommonName)
-			}
+			//grpclog.Info("peer certs: ", info.State.PeerCertificates)
+			//if len(info.State.PeerCertificates) > 0 {
+			//grpclog.Info("peer cert cn: ", info.State.PeerCertificates[0].Subject.CommonName)
+			//}
 			//default:
 			//return nil, status.Error(codes.Unauthenticated, "Unknown AuthInfo type")
 		}
@@ -76,7 +74,7 @@ func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 	//ctx = context.WithValue(ctx, "user_id", "john@example.com")
 	start := time.Now()
 	resp, err := handler(ctx, req)
-	grpclog.Infof("invoke unary method=%s duration=%s error=%v", info.FullMethod, time.Since(start), err)
+	grpclog.Infof("Unary=%s took=%s error=%v", info.FullMethod, time.Since(start), err)
 	return resp, err
 }
 
@@ -108,6 +106,7 @@ func logSleep(ctx context.Context, d time.Duration) {
 	}
 }
 
+/*
 // Notifications ...
 func (es *OwnerGRPC) Notifications(request *Filter, stream Owner_NotificationsServer) (err error) {
 	// TODO establish per-call (user/call notification channel)
@@ -129,18 +128,16 @@ func (es *OwnerGRPC) Notifications(request *Filter, stream Owner_NotificationsSe
 			return ctx.Err()
 		}
 	}
-	/*
-		for j := 0; j < 10; j++ {
+		//for j := 0; j < 10; j++ {
+		//	if err := stream.Send(&Notification{}); err != nil {
+		//		return err
+		//	}
+		//}
 
-			if err := stream.Send(&Notification{}); err != nil {
-				return err
-			}
-		}
-
-	*/
 	return nil
 
 }
+*/
 
 // DownloadServers ...
 func (ag *FilesGRPC) DownloadServers(ask *ChunkAsk, stream Files_DownloadServersServer) (err error) {
@@ -167,35 +164,47 @@ func (ui *InteractionsGRPC) SendMessage(ctx context.Context, message *Message) (
 	return
 }
 
+/*
 // Notifications ...
 func (ui *InteractionsGRPC) Notifications(filter *Filter, stream Interactions_NotificationsServer) (err error) {
 	return
-}
+}*/
 
 // Query ...
 func (ui *InteractionsGRPC) Query(ctx context.Context, filter *Filter) (response *Response, err error) {
 	return
 }
 
-// React ...
-func (ui *InteractionsGRPC) React(ctx context.Context, reactionRequest *ReactionRequest) (receipt *Response, err error) {
+// NewReaction ...
+func (ui *InteractionsGRPC) NewReaction(ctx context.Context, reaction *Reaction) (receipt *Response, err error) {
 	return
 }
 
-// Share ...
-func (ui *InteractionsGRPC) Share(ctx context.Context, shareRequest *ShareRequest) (receipt *Response, err error) {
+// NewShare ...
+func (ui *InteractionsGRPC) NewShare(ctx context.Context, share *Share) (receipt *Response, err error) {
 	return
 }
 
-// MakeComment ...
-func (ui *InteractionsGRPC) MakeComment(ctx context.Context, commentRequest *CommentRequest) (receipt *Response, err error) {
+// NewView ...
+func (ui *InteractionsGRPC) NewView(ctx context.Context, view *View) (receipt *Response, err error) {
 	return
 }
 
+// NewComment ...
+func (ui *InteractionsGRPC) NewComment(ctx context.Context, comment *Comment) (receipt *Response, err error) {
+	return
+}
+
+// QueryStream ...
+func (ui *InteractionsGRPC) QueryStream(filter *Filter, stream Interactions_QueryStreamServer) (err error) {
+	return
+}
+
+/*
 // MissedCalls ...
 func (ui *InteractionsGRPC) MissedCalls(stream Interactions_MissedCallsServer) (err error) {
 	return
-}
+}*/
 
 // Resend ...
 func (ui *InteractionsGRPC) Resend(context.Context, *Empty) (response *Response, err error) {

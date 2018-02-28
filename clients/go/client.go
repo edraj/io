@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"path"
@@ -143,8 +142,8 @@ func main() {
 	defer client.close()
 
 	ctx := context.Background()
-	one := Content{Id: "one", Path: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
-	two := Content{Id: "two", Path: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
+	one := Content{Id: "one", Pathname: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
+	two := Content{Id: "two", Pathname: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
 	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
 
 	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: two.Id}))
@@ -158,20 +157,21 @@ func main() {
 	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
 	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: two.Id}))
 
-	stream, err := client.service.Notifications(ctx, &Filter{})
-	if err != nil {
-		log.Println("Error on streaming", err)
-		return
-	}
-	for {
-		notification, err := stream.Recv()
-		if err == io.EOF {
-			log.Println("Notifications stream ends here")
-			break
-		}
+	/*
+		stream, err := client.service.Notifications(ctx, &Filter{})
 		if err != nil {
-			log.Fatalf("%v.Notifications(_) = _, %v", client, err)
+			log.Println("Error on streaming", err)
+			return
 		}
-		log.Println(notification)
-	}
+		for {
+			notification, err := stream.Recv()
+			if err == io.EOF {
+				log.Println("Notifications stream ends here")
+				break
+			}
+			if err != nil {
+				log.Fatalf("%v.Notifications(_) = _, %v", client, err)
+			}
+			log.Println(notification)
+		}*/
 }

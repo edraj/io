@@ -6,8 +6,8 @@ option java_package = "io.edraj";
 // import "google/api/annotations.proto";
 
 // ####################################################
-// Basic types: Geopoint, Address, Identity, Signature, 
-// Contact, ActorGroup, Permission, Keypair, Change
+// Basic types: Geopoint, Address, Actor, Info, Signature, Server,
+// Comm, Contact, ActorGroup, Permission, Keypair, Change, Data
 
 message Geopoint {
   float latitude = 1;
@@ -23,34 +23,24 @@ message Address {
   string country=6;
 }
 
-message Identity {
-  enum Type {
-    ACTOR =0;
-    WORKGROUP =1;
-  }
-  Type type = 1;
-  string id =2;
-  string displayname=3;
-  string shortname=4;
-  map<string,string> publickeys =5;
-  string domain = 6;
-  string description = 7; // Additional notes / bio if/when needed
-}
-
-message Locator { // Entity locator
-  EntryType type = 1;
-
-}
-
-
 message Signature {
+  string actor_id = 1;
   string signature = 2;
   string keyname = 3;
+  string public = 4;
   uint64 timestamp = 5;
-  repeated string fields_signed = 6;
+  repeated string fields_signed = 6; // In exact order
 }
 
-message Contact {
+message Server {
+  string shortname = 1;
+  repeated string active_ips = 2; // Has same index as below
+  repeated Geopoint geopoints = 3;
+  string dnsname = 4;
+}
+
+// Communication method
+message Comm {
   enum Type {
     EMAIL=0;
     MOBILE=1;
@@ -66,10 +56,22 @@ message Contact {
   string value=2;
 }
 
+// External, Non-user contact
+message Contact {
+  string id = 1;
+  string shortname = 2;
+  string displayname = 3;
+  repeated Address addresses = 4;
+  repeated Comm comms = 5;
+  string biography = 6;
+  repeated string organizations = 7;
+}
+
 message ActorGroup {
-  string id=1;
-  string file_name=2;
-  repeated Identity members=3;
+  string id = 1;
+  string shortname = 2;
+  string displayname = 3;
+  repeated string member_ids = 4;
 }
 
 message Permission {
@@ -82,9 +84,9 @@ message Permission {
     ADMIN=16;
   }
 
-  Type type = 1;
-  repeated Identity actors = 2;
-  repeated ActorGroup actorgroups = 3;
+  Type type = 1; // What
+  repeated Actor actors = 2; // Who
+  repeated ActorGroup actorgroups = 3; // Who
 }
 
 message Keypair {
@@ -95,40 +97,184 @@ message Keypair {
 
 message Change {
   uint64 timestamp=1; // When
-  Identity identity=2; // Who
+  string actor_id=2; // Who
   bytes delta=3; // What
-
 }
 
+// Information locator
+message Info {
+  string id = 1;
+
+  string shortname = 2;
+  string pathname = 3; 
+  string actor_id = 4;
+  string domain_id = 5;
+  Type type = 20;
+  enum Type {
+    CONTENT=0;
+    FILE=1;
+    CONTAINER=2;
+    COMMENT=3;
+    SHARE=4;
+    VIEW=5;
+    REACTION=6;
+    SCHEMA=7;
+    MESSAGE=8;
+  }
+}
+
+// Data Information-payload
+message Data {
+  string text      = 2; // Text <= 10M
+  bytes binary     = 3; // Small binary <= 10M
+  string url       = 4; // The file lives in an external location: External url that is directly accessible
+  string pathname  = 5; // The file lives in the server's local path: Local path to file relative to root_path, inluding filename
+  
+  string schema_id = 6; // The respective schema_id. When set, the data content must comply with that schema definition
+
+  uint64 size = 7; // In bytes
+  string checksum = 8; // Prefixed with checksum algorithm, md5: sha256: ...etc
+  StorageType storage = 9;
+  enum StorageType {
+    TEXT     = 0;
+    BINARY   = 1;
+    URL      = 2;
+    PATHNAME = 3;
+  }
+  string mime        = 18; // output of "file -b -i -"
+  string mime_description = 19; // output of "file -b -" 
+  MediaType type = 20;
+}
+
+enum MediaType {
+  UNKNOWN = 0;
+
+  // Media
+  PNG  = 1;
+  GIF  = 2;
+  JPG  = 3;
+  WAV  = 4;
+  OGG  = 5;
+  MP3  = 6;
+  MP4  = 7;
+
+  // Documents
+  PLAINTEXT    = 10;
+  ASCIIDOC     = 11;
+  MARKDOWN     = 12;
+  HTML_SNIPPET = 13;
+  HTML         = 14;
+  ODT          = 15; // Libreoffice Writer
+  DWG          = 16; // Libreoffice Draw
+  SVG          = 17;
+  CALC         = 18; // Libreoffice Calc
+  IMPRESS      = 19; // Libreoffice Presentation
+  PDF          = 20; 
+  CHM          = 21; // Compressed HTML
+  MSWORD       = 22; // Microsoft word
+  EXCEL        = 23; // Microsoft Excel
+  POWERPOINT   = 24; // Microsoft Powerpoint
+
+  // Structured 
+  JSON     = 30;
+  BSON     = 31;
+  XML      = 32;
+  PROTOBUF = 33; // ProtocolBuffer
+
+  // 
+  SOURCECODE = 40; 
+
+  // Executable Binary
+  EXECUTABLE = 41;
+
+  // Files collection
+  TARBALL  = 50; // .tar.gz
+  ZIP      = 51; // .zip
+
+  // Single-file databases
+  SQLITE   = 60;
+}
+
+
 // ########################################
-// Main types: Content, Container, Reaction, 
-// Comment, Message, File
-// Workgroup, Actor ... addon, page, block, layout, 
-// miner, crawler, schema, domain, notification
+// Main types: Each type has its own mongo collection and each entry has its own unique id within its collection
+// Content, Container, Reaction, Comment, Message, File, Schema, View, Domain
+// Workgroup, Actor (User, Workgroup?), Page, Block, Layout, Notification, Follower, Share
 // content.createIndex: tags, path, shortname, path+shortname, geopoint, // creted, updatd
 // content $text index: shortname, displayname, description
 
+message Domain {
+  string id = 1;
+  string displayname = 2;
+  string shortname = 3;
+  map<string,string> publickeys = 4;
+  repeated Server servers = 5;
+  string dnsname = 6; // by default its under consul : shortname.edraj
+}
+
+message Actor {
+  string id = 1;
+  string shortname = 2;
+  string displayname = 3;
+  uint64 created = 4;
+  uint64 updated = 5;
+  string domain_id = 6;
+  map<string,string> publickeys = 7;
+  repeated Address addresses = 8;
+  repeated Comm comms = 9;
+  repeated Contact contacts = 10;
+  string biography = 11;
+  repeated string banned_ids = 12; // users who are banned. This should later be used to feed into the user's reputation
+  repeated string affiliated_ids = 13; // Aka Friends/Followed Actors (users, workgroups ...etc).
+  repeated ActorGroup groups = 14; // 
+  repeated string member_ids = 15; // workgroup only
+  repeated Permission permissions = 16; // Workgroup only
+  Type type = 20;
+  enum Type {
+    USER=0;
+    WORKGROUP=1;
+    BOT=2;
+  } 
+}
+
+// File "files" collection on mongodb. files.createIndex checksum (for de-duping), messages.createIndex files, content.createIndex files
+// The permissions are inherited from the parent content entry. ie. files don't have permission of their own.
+message File {
+  string id = 1; // Unique id (guid)
+  string shortname = 2; // Direct file name
+  uint64 created = 3; 
+  uint64 updated = 4;
+  string description = 5; // Free text description
+  repeated string tags = 6; 
+  repeated string categories = 7; 
+  Signature signature = 13; // Creator's signature
+  Data data = 14;
+}
+
+
 message Content {
 	string id = 1; 
-  string path = 2;
+  string pathname = 2;  // Path including content's name
   string shortname = 3;
   string displayname = 4;
   string description = 5;
   uint64 created = 6;
   Signature authors_signature = 7;
   Geopoint geopoint = 8;
-  string body = 9;
-  repeated string files = 10; // file-ids
+  Data data = 9;
+  repeated string file_ids = 10; // additional file-ids (besideds the basic "data")
   repeated string tags = 11; 
   repeated string categories = 12;
   repeated Permission permissions = 13;
   repeated Change history = 14;
-  Identity actor = 15; // Curator or committer : the person who collected and picked this content
-  Identity author = 20; // The original author of the content
-  repeated Reaction reactions = 16;
-  repeated Comment comments = 17;
-  uint64 updated = 18; // last updated
-  bool is_draft = 19; // draft (in-the-works) vs publish status
+  string actor_id = 15; // Curator or committer : the person who collected and picked this content
+  string author_id = 16; // The original author of the content
+  repeated string reaction_ids = 17;
+  repeated string comment_ids = 18;
+  repeated string share_ids = 19;
+  repeated string view_ids = 20;
+  uint64 updated = 21; // last updated
+  bool is_draft = 22; // draft (in-the-works) vs publish status
 
   enum Events {
     NONE = 0;
@@ -136,13 +282,12 @@ message Content {
     REACTED = 3;
     MENTION = 4;
     SHARED = 5;
-
   }
 }
 
 message Container {
   string id = 1;
-  string path = 5;
+  string pathname = 5;
   string shortname = 2;
   string displayname = 3;
   uint64 created = 4;
@@ -150,249 +295,111 @@ message Container {
   repeated string tags = 10; 
   repeated string categories = 11;
   repeated Permission permissions = 12; 
-  Identity actor = 13; 
+  string actor_id = 13; 
 }
 
 message Reaction {
   enum Type {
-    LIKE=0;
-    LOVE=1;
-    SAD=2;
-    DISLIKE=3;
-    ANGRY=4;
-    LAUGH=5;
+    VIEW=0;
+    LIKE=1;
+    LOVE=2;
+    SAD=3;
+    DISLIKE=4;
+    ANGRY=5;
+    LAUGH=6;
   }
   
   Type type = 1; 
-  
+  string id = 2;
+
   Geopoint geopoint = 4;
   uint64 created = 5;
   Signature signature = 6;
-  Identity actor = 7;
+  string actor_id = 7;
   uint64 updated = 8; // last updated
 }
-
-// File "files" collection on mongodb. files.createIndex checksum (for de-duping), messages.createIndex files, content.createIndex files
-message File {
-  enum MediaType {
-    UNKNOWN = 0;
-
-    // Media
-    PNG  = 1;
-    GIF  = 2;
-    JPG  = 3;
-    WAV  = 4;
-    OGG  = 5;
-    MP3  = 6;
-    MP4  = 7;
-
-    // Documents
-    PLAINTEXT    = 10;
-    ASCIIDOC     = 11;
-    MARKDOWN     = 12;
-    HTML_SNIPPET = 13;
-    HTML         = 14;
-    ODT          = 15; // Libreoffice Writer
-    DWG          = 16; // Libreoffice Draw
-    SVG          = 17;
-    CALC         = 18; // Libreoffice Calc
-    IMPRESS      = 19; // Libreoffice Presentation
-    PDF          = 20; 
-    CHM          = 21; // Compressed HTML
-    MSWORD       = 22; // Microsoft word
-    EXCEL        = 23; // Microsoft Excel
-    POWERPOINT   = 24; // Microsoft Powerpoint
-
-    // Structured 
-    JSON     = 30;
-    BSON     = 31;
-    XML      = 32;
-    PROTOBUF = 33; // ProtocolBuffer
-
-    // 
-    SOURCECODE = 40; 
-
-    // Executable Binary
-    EXECUTABLE = 41;
-
-    // Files collection
-    TARBALL  = 50; // .tar.gz
-    ZIP      = 51; // .zip
-
-    // Single-file databases
-    SQLITE   = 60;
-  }
-
-  
-   string id = 1; // Unique id (guid)
-   string shortname = 2; // Direct file name
-   uint64 created = 3; 
-   uint64 updated = 4;
-   string description = 5; // Free text description
-   repeated string tags = 6; 
-   repeated string categories = 7; 
-   uint64 size = 8; // In bytes
-   string checksum = 9; // Prefixed with checksum algorithm, md5: sha256: ...etc
-
-   MediaType type = 10;
-   string mime        = 11; // output of "file -b -i -"
-   string mime_description = 12; // output of "file -b -" 
-
-   enum Storage {
-     TEXT     = 0;
-     BINARY   = 1;
-     URL      = 2;
-     PATHNAME = 3;
-   }
-
-   Storage storage  = 15; // Determines where the content exactly lives, the respective attribute in the below four attributes is filled. 
-   string text      = 16; // Text <= 10M
-   bytes binary     = 17; // Small binary <= 10M
-   string url       = 18; // The file lives in an external location: External url that is directly accessible
-   string pathname  = 19; // The file lives in the server's local path: Local path to file relative to root_path, inluding filename
-
-   string schema_id = 25; // The respective schema_id when the media type is one of the sctructured data types (json, bson, xml, protofuf)
-   message MediaDetails {
-    float duration = 1; // Video, Audio
-    uint32 width   = 2; // Image, Video
-    uint32 height  = 3; // Image, Video
-    float bitrate  = 4; // Video, Audio
-    float sampling = 5; // Audio
-  }
-
-  MediaDetails media_details = 30;
-
-
-  enum Events {
-    NONE = 0;
-    ACCESSED = 1;
-  }
-
-  // ? uint32 accessed = 50; // Access counter
-
- }
-
-message Workgroup {
-  string id = 1;
-  string shortname = 2;
-  string displayname = 3;
-  repeated Keypair keypairs = 4;
-  repeated Identity members = 5;
-  repeated Permission permissions = 6;
-} 
 
 message Message {
   string id = 1;
   string threadid = 2;
   uint64 timestamp = 3;
-  repeated Identity recipients = 4;
-  Signature senders_signature = 5;
+  repeated string recipient_ids = 4;
+  Signature signature = 5; // Sender's
 	string body = 6;
   string subject = 7;
-  repeated string files = 8; // File ids in the files collection. 
+  repeated string file_ids = 8; // File ids in the files collection. 
   Geopoint geopoint = 9;
   repeated string mentions = 10;
-/*
+
   enum Status {
-    STATUS_NONE =0;
-    DRAFT =1;
-    SENT = 2;
+    DRAFT     = 0;
+    QUEUED    = 1;
+    SENT      = 2;
     DELIVERED = 3; // Delivery receipt
-    SEEN = 4; // Read-receipt 
-    BEING_ANSWERED = 5; // A reply is being written
-    ACTIONED = 6; // Liked, agreed  or any other type of reaction
-    REPLIED = 7; // The message has been replied to (aka answered)
-    DELETED = 8; // set for removal
+    SEEN      = 4; // Read-receipt 
+    ACTIONED  = 6; // Liked, agreed  or any other type of reaction
+    REPLIED   = 7; // The message has been replied to (aka answered)
+    DELETED   = 8; // set for removal
   }
-
+  
   Status status = 11; 
-*/
 
   enum Events {
-    EVENT_NONE = 0;
-    NEW_MESSAGE = 1;  //  A new message that doesn't belong to an existing thread
-    NEW_REPLY = 2; // A reply to an existing thread
-    QUEUED = 3;
-    SENT = 4;
-    DELIVERED = 5;
-    SEEN = 6;
-    BEIND_ANSWERED = 7;
-    ACTIONED = 8;
+    NEW_MESSAGE = 0;  //  A new message that doesn't belong to an existing thread
+    NEW_REPLY = 1; // A reply to an existing thread
+    DELIVERY_CONFIRMED = 5;
+    SEEN_CONFIRMED = 6;
+    BEING_ANSWERED = 7;
+    ACTIONED_CONFIRMED = 8;
   }
 }
 
-message Actor {
-  enum ActorType {
-    USER = 0;
-    WORKGROUP = 1;
-    // ?SERVER = 2; // Another federated - server
-		DOMAIN = 3; // Domain
-    BOT = 4; // Miner, Addon, ... et al
-  }
-  ActorType type = 1;
-  string id = 2;
-  string shortname = 3;
-  string displayname = 4;
-  repeated Keypair keys = 5;
-  repeated Address addresses = 6;
-  repeated Contact comms = 7;
-  repeated Contact contacts = 8;
-  string biography = 9;
-  repeated Identity banned = 10;
-  // ? repeated Identity affiliated = 11;
-  repeated ActorGroup groups = 12;
-
-  enum Events {
-    NONE = 0;
-    
-  }
-}
-
-message Domain {
-  string id = 1;
-  string displayname = 2;
-  string shortname = 3;
-  repeated Keypair keys = 4;
-  repeated string active_ips = 5;
+message Follower {
+  string id = 1; // follower actor id
+  string shortname = 2;
+  string displayname = 3;
+  uint64 created = 4;
+  uint64 updated = 5;
+  string domain_id = 6;  
 }
 
 message Page {
   string id = 1;
+  Data data = 2;
+  repeated Permission permissions = 3;
 }
 
 message Block {
   string id = 1;
+  Data data = 2;
 }
 
-message Site {
+message Layout {
   string id = 1;
-}
-
-message Miner {
-  string id = 1;
-}
-
-message Crawler {
-  string id = 1;
+  Data data = 2;
 }
 
 message Schema {
   string id = 1;
+  Data data = 2;
 }
 
 message Comment {
-  Geopoint geo_point = 1;
-  Identity actor = 2;
-  string title = 3;
-  string body = 4;
-  uint64 created = 5;
-  uint64 updated = 6; // last updated
+  string id = 1;
+  Geopoint geo_point = 2;
+  string actor_id = 3;
+  string title = 4;
+  string body = 5;
+  uint64 created = 6;
+  uint64 updated = 7; // last updated
+  string parent_content_id = 8;
+  string parent_commend_id = 9;
+  repeated string child_comment_ids = 10;
 
   enum Events {
-    NONE = 0;
-    REACTED = 1;
-    COMMENT_REPLIED = 2;
-    MENTION = 3;
+    REACTED = 0;
+    COMMENT_REPLIED = 1;
+    MENTION = 2;
 
   }
 }
@@ -410,7 +417,7 @@ message Notification {
 
 
   // TBD who
-  Identity who = 2;
+  string actor_id = 2;
 
   // TBD what
   string what = 3;
@@ -425,8 +432,92 @@ message Notification {
 
 }
 
+message View {
+  string content_id = 1;
+  string file_ids = 2;
+  uint64 created = 3;
+  string actor_id = 4;
+  Actor.Type actor_type = 5; // So we can tell them apart. Only meaningful when actor_id is available (i.e. non-anonymous viewer)
+  string ip = 6;
+}
+
+message RegisteredActor {
+	string id = 1;
+  string shrotname = 3; // Unique index, same as commonName (cn) in the certificates
+  string disaplayname = 4; 
+	repeated Comm recovery = 5; // Recovery Comms
+  map<string,Certificate> certificates = 6; // Only the CRT. CSR and KEY are not stored.
+
+	repeated string delegate_actors = 7; // Other entrusted actors that are allowed to "Interact" on behalf of this actor
+
+  repeated string servers = 8; // Server ips / domain / domain aliases for the actor (mainly for the domain type)
+
+  // capped messages for actor/domain when someone tries to reach while target unvailable. 
+  // if cap reached courier should reply to the sender with the fact.
+  repeated MissedCall missed_calls = 9; 
+
+  // how much they stay online, how much are they reported against ...etc
+  // A float that measures the reputation of this actor: 
+  float reputation = 19;
+  
+  uint64 beacon = 10; // Last beacon from actor/domain
+  string primary_domain = 11; // only for actors
+  Type type = 20;
+	enum Type {
+		ROOT_ADMIN = 0;
+		USER = 1;
+    WORKGROUP = 2;
+    BOT = 3;
+		DOMAIN = 4;
+	}
+}
+
+
+message Share {
+  string content_id = 1;
+  uint64 created = 2;
+  string actor_id = 3;
+  string domain_id = 4;
+}
+
 // ########################################
-// Envelopes: Filter, Entry, Request, Response
+// Envelopes: EntryType, Filter, Entry, Request, Response
+
+// Types that have respective independent data persistence (not embeded in other structures)
+enum EntryType {
+  NONE=0;
+
+  ACTOR=1;
+  DOMAIN=2;
+
+  NOTIFICATION=5;
+  CONTACT=6;
+  ACTORGROUP=7;
+  CHANGE=8;
+  
+  // INFORMATION
+  CONTENT=10;
+  FILE=11;
+  CONTAINER=12;
+  COMMENT=13;
+  SHARE=14;
+  VIEW=15;
+  REACTION=16;
+  SCHEMA=17;
+  MESSAGE=18;
+
+  // UI
+  BLOCK=20;
+  PAGE=21;
+  LAYOUT=22;
+
+  ADDON=25;
+  
+  //INDEXER
+  CRAWLER=26;
+  MINER=27;
+}
+
 
 message Filter {
   EntryType entry_type = 1;
@@ -435,16 +526,18 @@ message Filter {
   uint64 fromt_time = 4;
   uint64 to_time = 5;
   string sort_by = 6;
-  string path = 7; // Prefix path
+  string path = 7; // path-prefix
   repeated string tags = 8;
   repeated string categories = 9;
   repeated string fields = 10;
-  int32 offset = 11;
-  int32 limit = 12;
+  Geopoint geopoint = 11; // For near-by proximity queries
+  float distance = 12; // Only used in conjunction with geopoint
+
+  int32 offset = 13;
+  int32 limit = 14;
 }
 
 message Entry {
-
 	EntryType type = 1;
 	string id = 2;
 
@@ -452,32 +545,16 @@ message Entry {
 	File file = 4;
 	Comment comment = 5;
 	Message message = 6;
-	Workgroup workgroup = 7;
 	Content content = 8;
-	Container container = 9;
+  Container container = 9;
+  Share share = 10;
+  Reaction reaction = 11;
 
-  repeated string further = 10;
-
+  repeated string further = 20;
 }
 
-enum EntryType {
-  ACTOR=0;
-  ADDON=1;
-  FILE=2;
-  BLOCK=3;
-  COMMENT=4;
-  CONTAINER=5;
-  CONTENT=6;
-  CRAWLER=7;
-  DOMAIN=8;
-  MESSAGE=9;
-  MINER=10;
-  NOTIFICATION=11;
-  PAGE=12;
-  REACTION=13;
-  SCHEMA=14;
-  WORKGROUP=15;
-}
+
+// API related structures
 
 message Status {
 	int32 code = 1;
@@ -549,7 +626,7 @@ message ActorRequest {
 }
 
 
-// Types of actors (UML) who interact with the various API's: User, Workgroup, Server
+// Types of actors (UML) who interact with the various API's: User, Workgroup, Bot, Server, Root
 
 message Empty {}
 
@@ -564,60 +641,40 @@ message MissedCall {
   Domain caller = 2;
   
 }
-message RootActor {
-	enum Type {
-		RootAdmin = 0;
-		Actor = 1;
-		Workgroup = 2;
-		Domain = 3;
-	}
-
-	string id = 1;
-	Type type = 2;
-
-	string shrotname = 3; // Unique index, same as commonName (cn) in the certificates
-  string disaplayname = 4; 
-	repeated string recovery_emails = 5;
-  map<string,Certificate> certificates =6;
-
-	repeated string delegate_actors = 7; // Other entrusted actors that are allowed to "Interact" on behalf of this actor
-
-  repeated string servers = 8; // Server ips / domain / domain aliases for the actor (mainly for the domain type)
-  
-  repeated MissedCall missed_calls = 9; // capped messages for actor/domain when someone tries to reach while target unvailable. if cap reached courier should reply to the sender with the fact
-  uint64 beacon = 10; // Last beacon from actor/domain
-
-  string primary_domain = 11; // only for actors
-}
 
 // Root  manages user/workgroup/domain certification
 // Required Actor fields: id, type: user/workgroup/domain ... , shortname==commonName, displayname, email?, server ips, publickeys
 // EdrajRoot maintains its own key-value store (key=commonName, value=actor details): Vault / Redis / Consul / Mongodb? 
+// Root would also offer "cached" "proxy" named https access (https://{{domain}}.edraj.io/{{actor}}) for public web access. 
+// (Excluding large content/ or that will be at cost)
 service Root { // Manage Users roles: Admin, Member, Federated, Anonymous
 
-  // Issue Creates an actor entrie in 'root'. After this, an actor can issue additional certs using 
+  // Issue (RootAdmin only) Creates an actor entrie in 'root'. After this, an actor can issue additional certs using 
   // an existing signed certificate and the same commonName
   rpc Issue(Actor) returns (Response); // RootAdmin only
   
-  // Revoke Equivelent to De-activate
+  // Revoke (RootAdmin only) Equivelent to De-activate
   rpc Revoke(Actor) returns (Response); // RootAdmin only
 
-  // List actors
+  // List actors (RootAdmin only)
   rpc List(Filter) returns (stream Actor); // RootAdmin only
 
-  // IssueAnother Produce CRT from CSR for the same commonName. 
+  // IssueAnother (Actor) Produce CRT from CSR for the same commonName. 
   // i.e. multiple devices / server cluster deployments.
   rpc IssueAnother(Actor) returns (Certificate); // Owner-actor only
 
   // Ping update the ip of the domain (server). IP contains the TTL, 
   // and a flag to say whether to delete existing ips or add to them
-  rpc Ping(Empty) returns (Response); // Domain/Server
+  rpc Beacon(Empty) returns (Response); // Domain/Server
 
   // Query details on other Actors
   // Return details on another actor. for domains (servers) the ip(s) are returned.
   rpc Query(Actor) returns (Actor); 
 
-  rpc Notify(Domain) returns (Response); // Notify domain when its beacon of life is back again
+  // MissedCall informs Root of server A's attempt to reach server B. Server B will be notified of all AwayCalls the moment they show beacon of life.
+  rpc MissedCall(Domain) returns (Response); // Notify domain when its beacon of life is back again
+  
+  rpc GoingOffline(Empty) returns (Response); // A domain informs Root that its going offline
 }
 
 // An owner who is a member of (subscribed to) this edraj pod. Mutual SSL verification
@@ -626,9 +683,8 @@ service Owner {
   rpc Create(Entry) returns (Response);
   rpc Update(Entry) returns (Response);
   rpc Query(Filter) returns (Response);
-  //rpc Get(Entry) returns (Response);
   rpc Delete(Entry) returns (Response);
-  rpc Notifications(Filter) returns (stream Notification);
+  // ?? Permissions management
 }
 
 
@@ -639,28 +695,55 @@ service Files { // Download files (with bittorrent-like features) and upload fil
   rpc Upload(stream Chunk) returns (stream ChunkAck);
 }
 
-message ReactionRequest {
+
+service Nofications {
+  // Return stream of interesting notifications
+  rpc Query(Filter) returns (stream Notification); // Poll-style
+  rpc Update(Notification) returns (Response); // Mark as "read", respond-to, ...etc.
+  rpc Delete(Notification) returns (Response);
+  //? rpc Supress(Filter) returns (Response); // Which notifications are not interesting.
+  rpc Register(Filter) returns (Response); // Register for what applies to filter so notifications are delivered. i.e. register for push-style
+  rpc Deliver(stream Notification) returns (Response); // Callback from another server
 }
 
-message ShareRequest {
-}
-
-message CommentRequest {
+service Federation { // Aka Server2Server
+  rpc Beacon(Empty) returns (Response); // Called by RootAdmin or other servers
+  rpc MissedCalls(stream Domain) returns (Response); // Called by Root to inform domain that there have been attempt(s) to reach it while away
+  rpc ResendCalls(Empty) returns (Response); // Send me calls while i was away messages ...
 }
 
 service Interactions { // Open for public. restrictions to specific target entries apply.
-  rpc SendMessage(Message) returns (Response); // Send message to a member
-  rpc Notifications(Filter) returns (stream Notification); // Register for notifications
+  // Send message to a member. If the member is within this domain then its delivered, 
+  // otherwise remote domain's sendmessage is called
+  rpc SendMessage(Message) returns (Response); 
+  //rpc Notifications(Filter) returns (stream Notification); // Register for notifications
   rpc Query(Filter) returns (Response); // Request for data. Content, Container, 
-  rpc React(ReactionRequest) returns (Response);
 
+  rpc NewComment(Comment) returns (Response);
+  rpc NewShare(Share) returns (Response);
+  rpc NewReaction(Reaction) returns (Response);
+  rpc NewView(View) returns (Response);
+  rpc QueryStream(Filter) returns (stream Entry); // Total, offset, limit are returned back as metadata
+
+  //rpc React(Reaction) returns (Response);
+
+  // Share
+  //rpc Share(ShareRequest) returns (Response); 
+  //rpc MakeComment(CommentRequest) returns (Response);
+  //rpc React(ReactionRequest) returns (Response);
   // FYI share. just to let the owner know that their content was shared. for 1. tracking, 2. large-file torrent-like distribued file access
-  rpc Share(ShareRequest) returns (Response); 
-  rpc MakeComment(CommentRequest) returns (Response);
-  rpc MissedCalls(stream Domain) returns (Response); // Called by Root to inform domain that there have been attempt to reach it while away
-  rpc Resend(Empty) returns (Response); // Send me calls while i was away messages ...
+  //message ReactionRequest {}
+  //message ShareRequest {}
+  //message CommentRequest {}
+  //rpc InformShare(ShareRequest) returns (Response); 
+  //rpc MakeComment(CommentRequest) returns (Response);
+  //rpc React(ReactionRequest) returns (Response);
 
 }
+
+//service Reactions {
+  //rpc React(Reaction) returns (Response);
+//}
 
 // ContentService: Content, Container, File, Comment, Reaction,
 //                Schema, Message, Layout, Page, Block
@@ -681,4 +764,51 @@ service Interactions { // Open for public. restrictions to specific target entri
 // General search => ? QueryRequest
 // Index => ?
 
+  /*enum Format { // Only for structured data
+    JSON   = 0;
+    BSON   = 1;
+    XML    = 2;
+    PROTO3 = 3;
+  }
+  Format format = 7;*/
+   /*message MediaDetails {
+    float duration = 1; // Video, Audio
+    uint32 width   = 2; // Image, Video
+    uint32 height  = 3; // Image, Video
+    float bitrate  = 4; // Video, Audio
+    float sampling = 5; // Audio
+  }
 
+  MediaDetails media_details = 30;*/
+
+  /*message Miner {
+  string id = 1;
+}
+
+message Crawler {
+  string id = 1;
+}*/
+
+  /*
+  string displayname = 6;
+  string description = 7; // Additional notes / bio if/when needed
+
+  string author_id = 15;
+
+  uint64 created = 13;
+  uint64 updated = 13;
+  Geopoint geopoint = 12;
+
+  //? map<string,string> publickeys =6; // For actors only.
+  repeated string categories = 10;
+  repeated string tags = 11;
+  
+  repeated Change history = 14;
+  repeated Permission permissions = 16;
+  Data data = 17;
+  repeated string mentions = 18; // user_ids/workgroup_ids
+  repeated string further = 20;
+
+  //string partnet_id = 18; 
+  //Entrytype parent_type = 19;
+  */
