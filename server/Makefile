@@ -1,8 +1,10 @@
 
+PATH := ~/go/bin:$(PATH)
+
 .PHONY: all test dep clean help
 all: edraj.pb.go server
 
-PKG_LIST := $(shell go list github.com/edraj/io/... | grep -v /vendor/)
+# PKG_LIST := $(shell go list github.com/edraj/io/... | grep -v /vendor/)
 
 
 edraj.pb.go: ../schema/edraj.proto 
@@ -33,4 +35,4 @@ clean:
 
 help:
 	## Display this help screen 	
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(PKG_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	#@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(PKG_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
