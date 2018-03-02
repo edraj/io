@@ -7,3 +7,5 @@ edraj_pb2.py
 server/server
 clients/go/client
 root/root
+debug
+edraj*_pb.js

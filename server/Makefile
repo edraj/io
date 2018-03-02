@@ -1,5 +1,5 @@
 
-PATH := ~/go/bin:$(PATH)
+PATH := $(HOME)/go/bin:$(PATH)
 
 .PHONY: all test dep clean help
 all: edraj.pb.go server
