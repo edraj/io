@@ -10,7 +10,8 @@ go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
 go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 go get -u github.com/golang/protobuf/protoc-gen-go
 mongo edraj --eval 'db.content.drop();'
-mongorestore --gzip --dir ../sample_data/dump/
+# mongodump -d edraj --gzip
+mongorestore -d edraj --gzip --dir ../sampledata/
 mongo edraj --eval 'db.content.count();'
 mongo edraj --eval 'db.content.getIndices();'
 #mongo edraj --eval 'db.content.createIndex( { displayname: "text", body: "text" }, {"default_language":"none"} );' #  Arabic sadly requires 3rd party license
