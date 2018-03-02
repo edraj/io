@@ -16,6 +16,17 @@ edraj.pb.go: ../schema/edraj.proto
 #./python_client/edraj_pb2_grpc.py: ../schema/edraj.proto
 #	python3 -m grpc_tools.protoc --proto_path=../schema --python_out=./python_client/ --grpc_python_out=./python_client/ ../schema/edraj.proto
 
+.PHONY: certs
+certs: 
+	certstrap --depot-path=../../workspace/certs init --passphrase "" -o edraj -cn edrajRootCA
+	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" --domain edraj.io
+	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA edraj.io
+	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" --domain localhost
+	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA localhost
+	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" -cn admin
+	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA admin
+	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" -cn kefah
+	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA kefah
 
 server: main.go edraj.pb.go storage.go entryman.go grpc.go http.go
 	go build -o server main.go edraj.pb.go storage.go entryman.go grpc.go http.go
@@ -25,6 +36,7 @@ dep:
 	go get google.golang.org/grpc
 	go get -u github.com/golang/protobuf/proto
 	go get -u github.com/golang/protobuf/protoc-gen-go
+	go get github.com/square/certstrap
 	go get -v -d ./...
 
 test: 

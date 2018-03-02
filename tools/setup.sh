@@ -9,6 +9,7 @@ go get google.golang.org/grpc
 go get -u github.com/golang/protobuf/proto
 go get -u github.com/golang/protobuf/protoc-gen-go
 go get gopkg.in/mgo.v2 
+go get github.com/square/certstrap
 
 mongo edraj --eval 'db.content.drop();'
 # mongodump -d edraj --gzip
