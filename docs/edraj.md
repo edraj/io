@@ -208,6 +208,17 @@ A page is a public presentation of selected content / streams. (blog-sphere like
 
 ### It sounds like Edraj is the app of all apps. But it really isn't, it simply tries to address the fundemental problem of information management and sharing in a gernalized fashion, which allows it to act like many of the existing apps: email, instant messaging, CMS, Notebook, Social Media, File sharing ...etc.
 
+* Public website: Company, Educational Institution, NGO
+* Personal blog
+* Personal media and file manager and access control
+* Public chat rooms (IRC/Slack) with the option of moderated discussions
+* Email (JMAP combining both SMTP and IMAP)
+* Instant messaging
+* Screensharing, Video / Audio conferencing
+* Blog-sphere (interest centric)
+* Social  media (people centric)
+* Curating content / Redit like / pintrest like
+
 ---
 ### Main components <img src="docs/images/puzzle.svg" alt="Imagine yourself" width="20%" style="float: right; background:none; border:none; box-shadow:none;">
 
