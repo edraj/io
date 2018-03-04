@@ -15,3 +15,6 @@ Implement:
 13. Write arabic language support for mongodb
 14. Buffer/cache undelivered requests until the respective domain server is up again (2-4 days max?)
 
+
+
+https://www.programming-books.io/essential/go/

@@ -1,0 +1,18 @@
+{
+
+	"server_name": "localhost",
+  "datacenter": "edrajdc",
+	"domain": "edraj",
+  "data_dir": "../../workspace/consul",
+  "log_level": "DEBUG",
+  "node_name": "root",
+  "addresses": { "https": "127.0.0.1" },
+  "ports": { "https": 8080 },
+	"ui": true,
+	"bootstrap": true,
+	"enable_agent_tls_for_checks": true,
+  "key_file": "../../workspace/certs/localhost.key",
+  "cert_file": "../../workspace/certs/localhost.crt",
+  "ca_file": "../../workspace/certs/edrajRootCA.crt",
+  "ca_path": "../../workspace/certs/"
+}

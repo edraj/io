@@ -1,0 +1,15 @@
+./consul keygen
+./consul agent -config-file=./config.json
+curl -s -k https://localhost:8080/v1/catalog/datacenters | jq
+curl -s -k https://localhost:8080/v1/catalog/nodes | jq
+curl -s -k https://localhost:8080/v1/catalog/services | jq
+curl -s -k https://localhost:8080/v1/health/node/root | jq
+
+
+curl -s -k https://localhost:8080/v1/agent/services | jq
+curl -k -XPUT --cacert ../../workspace/certs/edrajRootCA.crt --key ../../workspace/certs/admin.key --cert ../../workspace/certs/admin.crt -d @service.json https://localhost:8080/v1/agent/service/register 
+
+curl -s http://localhost:8500/v1/catalog/service/grpcrootname | jq
+
+
+

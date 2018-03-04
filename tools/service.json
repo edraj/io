@@ -1,0 +1,17 @@
+{
+	"id": "grpcrootid",
+	"name": "grpcrootname",
+	"tags": ["primary"],
+	"address": "localhost",
+	"port": 50050,
+	"enable_tag_override": false,
+	"checks": [
+		{
+			"id": "grpcroot",
+			"name": "Root Edraj Service health status",
+			"grpc": "localhost:50050",
+			"grpcusetls": true,
+			"interval": "300s"
+		}
+	]
+}

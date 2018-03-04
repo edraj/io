@@ -24,16 +24,17 @@ type EntryClient struct {
 	service   OwnerClient
 }
 
-func (ec *EntryClient) init() {
+// Conn ...
+func Conn(certsPath string, host string, port int) (c *grpc.ClientConn) {
 	var err error
 	grpc.EnableTracing = true
 	certificate, err := tls.LoadX509KeyPair(
-		path.Join(ec.certsPath, "kefah.crt"),
-		path.Join(ec.certsPath, "kefah.key"),
+		path.Join(certsPath, "kefah.crt"),
+		path.Join(certsPath, "kefah.key"),
 	)
 
 	certPool := x509.NewCertPool()
-	bs, err := ioutil.ReadFile(path.Join(ec.certsPath, "edrajRootCA.crt"))
+	bs, err := ioutil.ReadFile(path.Join(certsPath, "edrajRootCA.crt"))
 	if err != nil {
 		log.Fatalf("failed to read ca cert: %s", err)
 	}
@@ -44,14 +45,14 @@ func (ec *EntryClient) init() {
 	}
 
 	transportCreds := credentials.NewTLS(&tls.Config{
-		ServerName:   ec.host,
+		ServerName:   host,
 		Certificates: []tls.Certificate{certificate},
 		RootCAs:      certPool,
 	})
 
 	// TODO : additionally consider stats: grpc.WithStatsHandler(th)
-	ec.conn, err = grpc.Dial(
-		fmt.Sprintf("%s:%d", ec.host, ec.port),
+	c, err = grpc.Dial(
+		fmt.Sprintf("%s:%d", host, port),
 		grpc.WithTransportCredentials(transportCreds),
 		grpc.WithUnaryInterceptor(clientUnaryInterceptor),
 		grpc.WithStreamInterceptor(clientStreamInterceptor))
@@ -59,11 +60,8 @@ func (ec *EntryClient) init() {
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	ec.service = NewOwnerClient(ec.conn)
-}
 
-func (ec *EntryClient) close() {
-	ec.conn.Close()
+	return c
 }
 
 func check(response *Response, err error) {
@@ -135,30 +133,38 @@ func clientStreamInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grp
 // TODO clientStreamInterceptor
 
 func main() {
+	conn := Conn("../../../workspace/certs/", "localhost", 50050)
+	defer conn.Close()
+	health := NewHealthClient(conn)
+	r, err := health.Check(context.Background(), &HealthCheckRequest{Service: "Hi there"})
+	if err != nil {
+		panic(err)
+	}
 
-	// Set up a connection to the server.
-	client := EntryClient{host: "localhost", port: 50051, certsPath: "../../../workspace/certs/"}
-	client.init()
-	defer client.close()
-
-	ctx := context.Background()
-	one := Content{Id: "one", Pathname: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
-	two := Content{Id: "two", Pathname: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
-	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
-
-	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: two.Id}))
-
-	check(client.service.Create(ctx, &Entry{Type: EntryType_CONTENT, Content: &one}))
-	check(client.service.Create(ctx, &Entry{Type: EntryType_CONTENT, Content: &two}))
-
-	check(client.service.Query(ctx, &Filter{EntryType: EntryType_CONTENT}))
-	//check(client.service.Get(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
-
-	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
-	check(client.service.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: two.Id}))
+	log.Println("Got this reponse: ", r)
 
 	/*
-		stream, err := client.service.Notifications(ctx, &Filter{})
+		// Set up a connection to the server.
+		owner := NewOwnerClient(conn)
+
+		ctx := context.Background()
+		one := Content{Id: "one", Pathname: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
+		two := Content{Id: "two", Pathname: "/home", Shortname: "Ali", Tags: []string{"Aee", "Bee", "Cee"}}
+		check(owner.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
+
+		check(owner.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: two.Id}))
+
+		check(owner.Create(ctx, &Entry{Type: EntryType_CONTENT, Content: &one}))
+		check(owner.Create(ctx, &Entry{Type: EntryType_CONTENT, Content: &two}))
+
+		check(owner.Query(ctx, &Filter{EntryType: EntryType_CONTENT}))
+		//check(owner.Get(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
+
+		check(owner.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: one.Id}))
+		check(owner.Delete(ctx, &Entry{Type: EntryType_CONTENT, Id: two.Id}))
+	*/
+	/*
+		stream, err := owner.Notifications(ctx, &Filter{})
 		if err != nil {
 			log.Println("Error on streaming", err)
 			return
