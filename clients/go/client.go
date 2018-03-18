@@ -135,13 +135,13 @@ func clientStreamInterceptor(ctx context.Context, desc *grpc.StreamDesc, cc *grp
 func main() {
 	conn := Conn("../../../workspace/certs/", "localhost", 50050)
 	defer conn.Close()
-	health := NewHealthClient(conn)
-	r, err := health.Check(context.Background(), &HealthCheckRequest{Service: "Hi there"})
-	if err != nil {
-		panic(err)
-	}
+	//health := NewHealthClient(conn)
+	//r, err := health.Check(context.Background(), &HealthCheckRequest{Service: "Hi there"})
+	//if err != nil {
+	//	panic(err)
+	//}
 
-	log.Println("Got this reponse: ", r)
+	//log.Println("Got this reponse: ", r)
 
 	/*
 		// Set up a connection to the server.

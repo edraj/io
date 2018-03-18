@@ -32,12 +32,7 @@ message Signature {
   repeated string fields_signed = 6; // In exact order
 }
 
-message Server {
-  string shortname = 1;
-  repeated string active_ips = 2; // Has same index as below
-  repeated Geopoint geopoints = 3;
-  string dnsname = 4;
-}
+
 
 // Communication method
 message Comm {
@@ -202,6 +197,13 @@ enum MediaType {
 // Workgroup, Actor (User, Workgroup?), Page, Block, Layout, Notification, Follower, Share
 // content.createIndex: tags, path, shortname, path+shortname, geopoint, // creted, updatd
 // content $text index: shortname, displayname, description
+
+message Server {
+  string shortname = 1;
+  repeated string active_ips = 2; // Has same index as below
+  repeated Geopoint geopoints = 3;
+  string dnsname = 4;
+}
 
 message Domain {
   string id = 1;
@@ -628,8 +630,6 @@ message ActorRequest {
 
 // Types of actors (UML) who interact with the various API's: User, Workgroup, Bot, Server, Root
 
-message Empty {}
-
 message Certificate {
 	string shortname = 1; // commonName
 	string csr = 2;
@@ -649,11 +649,13 @@ message MissedCall {
 // (Excluding large content/ or that will be at cost)
 service Root { // Manage Users roles: Admin, Member, Federated, Anonymous
 
-  // Issue (RootAdmin only) Creates an actor entrie in 'root'. After this, an actor can issue additional certs using 
+  // Issue Creates an actor entrie in 'root'. After this, an actor can issue additional certs using 
   // an existing signed certificate and the same commonName
+  // If actor is DOMAIN only rootadmin can issue
+  // If actor is USER domain can issue
   rpc Issue(Actor) returns (Response); // RootAdmin only
   
-  // Revoke (RootAdmin only) Equivelent to De-activate
+  // Revoke Equivelent to De-activate
   rpc Revoke(Actor) returns (Response); // RootAdmin only
 
   // List actors (RootAdmin only)
@@ -663,9 +665,6 @@ service Root { // Manage Users roles: Admin, Member, Federated, Anonymous
   // i.e. multiple devices / server cluster deployments.
   rpc IssueAnother(Actor) returns (Certificate); // Owner-actor only
 
-  // Ping update the ip of the domain (server). IP contains the TTL, 
-  // and a flag to say whether to delete existing ips or add to them
-  rpc Beacon(Empty) returns (Response); // Domain/Server
 
   // Query details on other Actors
   // Return details on another actor. for domains (servers) the ip(s) are returned.
@@ -673,8 +672,16 @@ service Root { // Manage Users roles: Admin, Member, Federated, Anonymous
 
   // MissedCall informs Root of server A's attempt to reach server B. Server B will be notified of all AwayCalls the moment they show beacon of life.
   rpc MissedCall(Domain) returns (Response); // Notify domain when its beacon of life is back again
+
   
-  rpc GoingOffline(Empty) returns (Response); // A domain informs Root that its going offline
+  // Ping update the ip of the domain (server). IP contains the TTL, 
+  // and a flag to say whether to delete existing ips or add to them
+  // Is there an equivelent in consul?
+  rpc Beacon(Server) returns (Response); // Domain/Server
+
+  rpc GoingOffline(Server) returns (Response); // A domain informs Root that its going offline
+
+  rpc ComingOnline(Server) returns (Response); // A domain informs Root that its coming online
 }
 
 // An owner who is a member of (subscribed to) this edraj pod. Mutual SSL verification
@@ -707,9 +714,9 @@ service Nofications {
 }
 
 service Federation { // Aka Server2Server
-  rpc Beacon(Empty) returns (Response); // Called by RootAdmin or other servers
+  rpc Beacon(Server) returns (Response); // Called by RootAdmin or other servers
   rpc MissedCalls(stream Domain) returns (Response); // Called by Root to inform domain that there have been attempt(s) to reach it while away
-  rpc ResendCalls(Empty) returns (Response); // Send me calls while i was away messages ...
+  rpc ResendCalls(Server) returns (Response); // Send me calls while i was away messages ...
 }
 
 service Interactions { // Open for public. restrictions to specific target entries apply.

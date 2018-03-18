@@ -1,4 +1,6 @@
 {
     "window.menuBarVisibility": "toggle",
-    "workbench.colorTheme": "Default Light+"
+    "workbench.colorTheme": "Default Light+",
+    "editor.minimap.enabled": false,
+    "editor.fontSize": 13
 }

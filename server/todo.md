@@ -15,6 +15,15 @@ Implement:
 13. Write arabic language support for mongodb
 14. Buffer/cache undelivered requests until the respective domain server is up again (2-4 days max?)
 
+15. Consider https://github.com/cloudflare/cfssl instead of certstrap. cfss has: 5. revoke, 6. intermediate ca
+certstrap can 1. create CA, 2. Create requests, 3. distinguish between domain (server) and user (client), 4. Sign. 
+```bash
+# main tool
+go get -u github.com/cloudflare/cfssl/cmd/cfssl
+# Other tools
+go get -u github.com/cloudflare/cfssl/cmd/...
+```
 
+16. Should consul be additionally used by server (in addition to root?) in that case can we enable strict two-way ssl verfication?
 
 https://www.programming-books.io/essential/go/

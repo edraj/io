@@ -2,7 +2,7 @@
 PATH := $(HOME)/go/bin:$(PATH)
 
 .PHONY: all test dep clean help
-all: edraj.pb.go server
+all: edraj.pb.go health.pb.go server
 
 # PKG_LIST := $(shell go list github.com/edraj/io/... | grep -v /vendor/)
 
@@ -13,23 +13,13 @@ edraj.pb.go: ../schema/edraj.proto
 	sed -i 's/bson:"id,omitempty"/bson:"_id,omitempty"/g' ./edraj.pb.go 
 	sed -i '1{s/$$/  DO NOT EDIT./}' ./edraj.pb.go
 
-#./python_client/edraj_pb2_grpc.py: ../schema/edraj.proto
-#	python3 -m grpc_tools.protoc --proto_path=../schema --python_out=./python_client/ --grpc_python_out=./python_client/ ../schema/edraj.proto
-
-.PHONY: certs
-certs: 
-	certstrap --depot-path=../../workspace/certs init --passphrase "" -o edraj -cn edrajRootCA
-	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" --domain edraj.io
-	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA edraj.io
-	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" --domain localhost
-	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA localhost
-	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" -cn admin
-	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA admin
-	certstrap --depot-path=../../workspace/certs request-cert --passphrase "" -cn kefah
-	certstrap --depot-path=../../workspace/certs sign --CA edrajRootCA kefah
+health.pb.go: ../schema/health.proto
+	protoc -I ../schema/ ../schema/health.proto --go_out=plugins=grpc:. 
+	sed -i 's/fileDescriptor0/fileDescriptor1/g' health.pb.go
+	sed -i '1{s/$$/  DO NOT EDIT./}' ./health.pb.go
 
 server: main.go edraj.pb.go storage.go entryman.go grpc.go http.go
-	go build -o server main.go edraj.pb.go storage.go entryman.go grpc.go http.go
+	go build -o server main.go edraj.pb.go health.pb.go storage.go entryman.go grpc.go http.go
 
 dep: 
 	go get gopkg.in/mgo.v2 
@@ -43,7 +33,7 @@ test:
 	go test
 
 clean: 
-	rm -f server edraj.pb.go
+	rm -f server edraj.pb.go health.pb.go
 
 help:
 	## Display this help screen 	

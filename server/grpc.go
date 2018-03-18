@@ -12,23 +12,25 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 // OwnerGRPC implements EntryServiceServer and delegates the calls to EntryMan
-type OwnerGRPC struct {
-}
+type OwnerGRPC struct{}
 
 // FilesGRPC ...
-type FilesGRPC struct {
-}
+type FilesGRPC struct{}
 
 // InteractionsGRPC ...
-type InteractionsGRPC struct {
-}
+type InteractionsGRPC struct{}
+
+// Federation ...
+type FederationGRPC struct{}
 
 func streamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 	start := time.Now()
@@ -207,8 +209,23 @@ func (ui *InteractionsGRPC) MissedCalls(stream Interactions_MissedCallsServer) (
 }*/
 
 // Resend ...
-func (ui *InteractionsGRPC) Resend(context.Context, *Empty) (response *Response, err error) {
-	return
+// func (ui *InteractionsGRPC) Resend(context.Context, *Empty) (response *Response, err error) { return }
+
+// Beacon ...
+func (f *FederationGRPC) Beacon(context.Context, *Server) (response *Response, err error) { return }
+
+// MissedCalls ...
+func (f *FederationGRPC) MissedCalls(Federation_MissedCallsServer) (err error) { return }
+
+// ResendCalls ...
+func (f *FederationGRPC) ResendCalls(context.Context, *Server) (response *Response, err error) { return }
+
+// Check Health
+func (f *FederationGRPC) Check(ctx context.Context, request *HealthCheckRequest) (response *HealthCheckResponse, err error) {
+	grpclog.Info("Got Healthcheck request: ", request.Service)
+	response = &HealthCheckResponse{Status: HealthCheckResponse_SERVING}
+	err = status.Errorf(codes.OK, "We are good")
+	return response, err
 }
 
 // Run ...
@@ -249,6 +266,8 @@ func runGRPC() {
 	RegisterFilesServer(grpcServer, filesGrpc)
 	//RegisterAdminServer(grpcServer, adminGrpc)
 	RegisterInteractionsServer(grpcServer, interactionsGrpc)
+	RegisterFederationServer(grpcServer, federationGrpc)
+	RegisterHealthServer(grpcServer, federationGrpc)
 
 	grpclog.Info("Starting the gRPC server")
 	grpcServer.Serve(listen)

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"path"
 	"strings"
 	"time"
@@ -46,8 +47,8 @@ var (
 		mongoAddress:   "127.0.0.1:27017",
 	}
 
-	rootGrpc = new(RootGRPC)
-	//entryMan   = &EntryMan{}
+	rootGrpc   = new(RootGRPC)
+	consul     *consullib.Client
 	grpcServer *grpc.Server
 )
 
@@ -55,7 +56,8 @@ var (
 type RootGRPC struct{}
 
 // Check Health
-func (r *RootGRPC) Check(ctx context.Context, request *HealthCheckRequest) (response *HealthCheckResponse, err error) {
+func (r *RootGRPC) Check(ctx context.Context, request *HealthCheckRequest) (response *HealthCheckResponse,
+	err error) {
 	grpclog.Info("Got Healthcheck request: ", request.Service)
 	response = &HealthCheckResponse{Status: HealthCheckResponse_SERVING}
 	err = status.Errorf(codes.OK, "We are good")
@@ -63,21 +65,28 @@ func (r *RootGRPC) Check(ctx context.Context, request *HealthCheckRequest) (resp
 }
 
 // Issue ...
-func (r *RootGRPC) Issue(ctx context.Context, actor *Actor) (response *Response, err error) { return }
+func (r *RootGRPC) Issue(ctx context.Context, actor *Actor) (response *Response, err error) {
+	return
+}
 
 // Revoke ...
-func (r *RootGRPC) Revoke(ctx context.Context, actor *Actor) (response *Response, err error) { return }
+func (r *RootGRPC) Revoke(ctx context.Context, actor *Actor) (response *Response, err error) {
+	return
+}
 
 // List ...
 func (r *RootGRPC) List(*Filter, Root_ListServer) (err error) { return }
 
 // IssueAnother ...
-func (r *RootGRPC) IssueAnother(ctx context.Context, actor *Actor) (certificate *Certificate, err error) {
+func (r *RootGRPC) IssueAnother(ctx context.Context, actor *Actor) (certificate *Certificate,
+	err error) {
 	return
 }
 
 // Ping ...
-func (r *RootGRPC) Ping(ctx context.Context, empty *Empty) (response *Response, err error) { return }
+func (r *RootGRPC) Ping(ctx context.Context, empty *Server) (response *Response, err error) {
+	return
+}
 
 // Get details on other Actors
 // Get(ctx context.Context, actor *Actor) (response *Actor, err error) { return }
@@ -94,31 +103,42 @@ func (r *RootGRPC) Ping(ctx context.Context, empty *Empty) (response *Response, 
 // and a flag to say whether to delete existing ips or add to them
 
 // Beacon ...
-func (r *RootGRPC) Beacon(ctx context.Context, _ *Empty) (response *Response, err error) { return }
+func (r *RootGRPC) Beacon(ctx context.Context, _ *Server) (response *Response, err error) { return }
 
 // Query details on other Actors
 // Return details on another actor. for domains (servers) the ip(s) are returned.
 func (r *RootGRPC) Query(ctx context.Context, actor *Actor) (ractor *Actor, err error) { return }
 
-// MissedCall informs Root of server A's attempt to reach server B. Server B will be notified of all AwayCalls the moment they show beacon of life.
+// MissedCall informs Root of server A's attempt to reach server B.
+// Server B will be notified of all AwayCalls the moment they show beacon of life.
 func (r *RootGRPC) MissedCall(ctx context.Context, domain *Domain) (response *Response, err error) {
 	return
 }
 
 // GoingOffline ...
-func (r *RootGRPC) GoingOffline(ctx context.Context, _ *Empty) (response *Response, err error) { return }
+func (r *RootGRPC) GoingOffline(ctx context.Context, _ *Server) (response *Response, err error) {
+	return
+}
 
-func streamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+// ComingOnline ...
+func (r *RootGRPC) ComingOnline(ctx context.Context, _ *Server) (response *Response, err error) {
+	return
+}
+
+func streamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo,
+	handler grpc.StreamHandler) (err error) {
 	start := time.Now()
 	//newStream := grpc_middleware.WrapServerStream(stream)
 	//newStream.WrappedContext = context.WithValue(ctx, "user_id", "john@example.com")
 	err = handler(srv, stream)
-	grpclog.Infof("invoke stream method=%s duration=%s error=%v", info.FullMethod, time.Since(start), err)
+	grpclog.Infof("invoke stream method=%s duration=%s error=%v", info.FullMethod,
+		time.Since(start), err)
 	return
 }
 
 //grpc.StreamServerInterceptor()
-func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func unaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler) (interface{}, error) {
 
 	if headers, ok := metadata.FromIncomingContext(ctx); ok {
 		for k, v := range headers {
@@ -163,7 +183,8 @@ func GrpcService() {
 		grpclog.Fatal(err)
 	}
 
-	certificate, err := tls.LoadX509KeyPair(path.Join(config.certsPath, "localhost.crt"), path.Join(config.certsPath, "localhost.key"))
+	certificate, err := tls.LoadX509KeyPair(path.Join(config.certsPath, "localhost.crt"),
+		path.Join(config.certsPath, "localhost.key"))
 
 	certPool := x509.NewCertPool()
 	bs, err := ioutil.ReadFile(path.Join(config.certsPath, "edrajRootCA.crt"))
@@ -177,7 +198,8 @@ func GrpcService() {
 	}
 
 	tlsConfig := &tls.Config{
-		ClientAuth:   tls.RequireAndVerifyClientCert, //tls.NoClientCert, //tls.RequireAnyClientCert, //tls.VerifyClientCertIfGiven, //tls.RequireAndVerifyClientCert,
+		//tls.NoClientCert, //tls.RequireAnyClientCert, //tls.VerifyClientCertIfGiven
+		ClientAuth:   tls.RequireAndVerifyClientCert,
 		Certificates: []tls.Certificate{certificate},
 		ClientCAs:    certPool,
 	}
@@ -210,7 +232,8 @@ func main() {
 
 	consulConfig := consullib.DefaultConfig()
 	consulConfig.Address = "127.0.0.1:8500"
-	consul, err := consullib.NewClient(consulConfig)
+	var err error
+	consul, err = consullib.NewClient(consulConfig)
 	check(err)
 	kv := consul.KV()
 	d := &consullib.KVPair{Key: "sites/1/domain", Value: []byte("mydomain.com")}
@@ -223,5 +246,27 @@ func main() {
 	grpclog.Info("Value: ", string(kvp.Value))
 	grpclog.Info("Hello there")
 
-	GrpcService()
+	go GrpcService()
+
+	c := make(chan os.Signal, 1)
+	// We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
+	// SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
+	signal.Notify(c, os.Interrupt)
+
+	// Block until we receive our signal.
+	<-c
+
+	// Create a deadline to wait for.
+	//ctx, cancel := context.WithTimeout(context.Background(), config.shutdownWait)
+	//defer cancel()
+	// Doesn't block if no connections, but will otherwise wait
+	// until the timeout deadline.
+	//httpServer.Shutdown(ctx)
+	grpcServer.Stop()
+	// Optionally, you could run srv.Shutdown in a goroutine and block on
+	// <-ctx.Done() if your application should wait for other services
+	// to finalize based on context cancellation.
+	grpclog.Info("shutting down")
+	os.Exit(0)
+
 }

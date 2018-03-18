@@ -13,3 +13,4 @@ curl -s http://localhost:8500/v1/catalog/service/grpcrootname | jq
 
 
 
+

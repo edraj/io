@@ -1,6 +1,6 @@
 {
-	"id": "grpcrootid",
-	"name": "grpcrootname",
+	"id": "root1",
+	"name": "grpcroot",
 	"tags": ["primary"],
 	"address": "localhost",
 	"port": 50050,
@@ -11,7 +11,7 @@
 			"name": "Root Edraj Service health status",
 			"grpc": "localhost:50050",
 			"grpcusetls": true,
-			"interval": "300s"
+			"Interval": "600s"
 		}
 	]
 }

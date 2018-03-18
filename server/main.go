@@ -39,9 +39,9 @@ var (
 		mongoAddress:   "127.0.0.1:27017",
 	}
 
-	ownerGrpc = new(OwnerGRPC)
-	filesGrpc = new(FilesGRPC)
-	//adminGrpc            = new(AdminGRPC)
+	ownerGrpc        = new(OwnerGRPC)
+	filesGrpc        = new(FilesGRPC)
+	federationGrpc   = new(FederationGRPC)
 	interactionsGrpc = new(InteractionsGRPC)
 
 	entryMan = &EntryMan{}
