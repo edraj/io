@@ -18,8 +18,8 @@ python/edraj_pb2_grpc.py: ../schema/edraj.proto
 node/edraj_grpc_pb.js: ../schema/edraj.proto
 	./node/node_modules/.bin/grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./node/ --grpc_out=./node/ --plugin=protoc-gen-grpc=./node/node_modules/grpc-tools/bin/grpc_node_plugin --proto_path=../schema ../schema/edraj.proto
 
-go/client: go/client.go go/edraj.pb.go
-	go build -o go/client go/client.go go/edraj.pb.go 
+go/client: go/main.go go/edraj.pb.go
+	go build -o go/client go/main.go go/edraj.pb.go 
 
 dep: 
 	go get google.golang.org/grpc
